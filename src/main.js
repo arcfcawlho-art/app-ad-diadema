@@ -1,104 +1,97 @@
 import { Database } from "./services/database.js";
 
-let state = { user: null, view: 'login' };
+let state = { view: 'login', user: null };
 
 function render() {
     const app = document.getElementById('app');
     if (!app) return;
-
-    if (state.view === 'login') {
-        app.innerHTML = renderLogin();
-    } else if (state.view === 'cadastro') {
-        app.innerHTML = renderCadastro();
-    } else {
-        const isMobile = window.innerWidth < 768;
-        app.innerHTML = isMobile ? renderMobile() : renderDesktop();
-    }
+    
+    if (state.view === 'login') app.innerHTML = renderLogin();
+    else if (state.view === 'cadastro') app.innerHTML = renderCadastro();
+    else app.innerHTML = renderHome();
 }
 
 function renderLogin() {
     return `
-    <div class="h-screen w-screen flex items-center justify-center bg-[#8b3230] p-6">
-        <div class="bg-white w-full max-w-sm rounded-3xl p-8 shadow-2xl text-center border-t-8 border-[#8b3230]">
-            <img src="logo.jpeg" alt="Logo" class="w-24 mx-auto mb-4 rounded-xl">
-            <h2 class="text-lg font-bold text-gray-800 mb-6 uppercase leading-tight">ASSEMBLÉIA DE DEUS<br>DE DIADEMA</h2>
-            <div class="space-y-4">
-                <input id="userPIN" type="password" maxlength="4" placeholder="PIN de 4 dígitos" class="w-full p-4 bg-gray-50 rounded-2xl border-none outline-none text-center text-2xl tracking-widest">
-                <button onclick="window.entrar()" class="w-full bg-[#8b3230] text-white p-4 rounded-2xl font-bold shadow-lg active:scale-95 transition">ENTRAR</button>
-                <button onclick="window.mudarView('cadastro')" class="mt-4 text-[#8b3230] text-sm font-bold hover:underline block w-full">Não tem conta? Cadastre-se aqui</button>
+    <div class="h-screen w-screen flex flex-col items-center justify-center bg-white p-6">
+        <img src="logo.jpeg" class="w-32 mb-6 rounded-2xl shadow-lg">
+        <h1 class="text-xl font-black text-[#8b3230] text-center mb-12 uppercase tracking-tight">
+            ASSEMBLÉIA DE DEUS<br>DE DIADEMA
+        </h1>
+
+        <div class="w-full max-w-xs space-y-8 text-center">
+            <button onclick="window.autenticarDigital()" class="mx-auto w-24 h-24 bg-gray-50 rounded-full flex items-center justify-center border-2 border-gray-100 shadow-inner active:scale-90 transition">
+                <span class="material-icons text-5xl text-[#8b3230]">fingerprint</span>
+            </button>
+            <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Toque para entrar com biometria</p>
+
+            <div class="pt-8">
+                <input id="userPIN" type="password" maxlength="4" placeholder="OU DIGITE SEU PIN" 
+                    class="w-full p-4 bg-gray-50 rounded-2xl text-center text-xl font-bold border-none outline-none focus:ring-2 focus:ring-[#8b3230]">
+                <button onclick="window.tentarLogin()" class="w-full mt-4 bg-[#8b3230] text-white p-4 rounded-2xl font-bold shadow-lg">ENTRAR</button>
             </div>
+
+            <button onclick="state.view = 'cadastro'; render();" class="text-[#8b3230] text-sm font-bold uppercase tracking-tighter hover:underline">
+                Primeiro Acesso / Cadastro
+            </button>
         </div>
     </div>`;
 }
 
 function renderCadastro() {
     return `
-    <div class="h-screen w-screen flex items-center justify-center bg-gray-100 p-4 overflow-y-auto">
-        <div class="bg-white w-full max-w-2xl rounded-3xl p-8 shadow-xl border-t-8 border-[#8b3230] my-8">
-            <h2 class="text-2xl font-bold text-gray-800 mb-2 text-center">Ficha de Membro</h2>
-            <p class="text-center text-gray-500 mb-6 text-xs uppercase font-bold">Assembleia de Deus de Diadema</p>
-            
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div class="md:col-span-2">
-                    <label class="text-[10px] font-bold text-gray-400 ml-2">FOTO DE PERFIL</label>
-                    <input type="file" id="regFoto" accept="image/*" class="w-full p-3 bg-gray-50 rounded-xl border border-dashed border-gray-300">
-                </div>
-                <input id="regNome" type="text" placeholder="Nome Completo" class="md:col-span-2 w-full p-4 bg-gray-50 rounded-2xl outline-none border focus:border-[#8b3230]">
-                <input id="regNascimento" type="date" class="w-full p-4 bg-gray-50 rounded-2xl outline-none border focus:border-[#8b3230]">
-                <input id="regWhatsapp" type="tel" placeholder="WhatsApp (00) 00000-0000" class="w-full p-4 bg-gray-50 rounded-2xl outline-none border focus:border-[#8b3230]">
-                <input id="regCPF" type="text" placeholder="CPF" class="w-full p-4 bg-gray-50 rounded-2xl outline-none border focus:border-[#8b3230]">
-                <input id="regCong" type="text" placeholder="Congregação / Setor" class="w-full p-4 bg-gray-50 rounded-2xl outline-none border focus:border-[#8b3230]">
-                <div class="md:col-span-2 bg-red-50 p-4 rounded-2xl">
-                    <label class="block text-center text-xs font-bold text-red-800 mb-2 uppercase">Crie seu PIN de 4 números</label>
-                    <input id="regPIN" type="password" maxlength="4" placeholder="0 0 0 0" class="w-full p-4 bg-white rounded-xl outline-none text-center text-2xl tracking-[0.5em]">
-                </div>
-                <div class="md:col-span-2 flex items-start gap-3 p-4 bg-gray-50 rounded-2xl">
-                    <input type="checkbox" id="regLGPD" class="w-5 h-5 accent-[#8b3230] mt-1">
-                    <label for="regLGPD" class="text-[11px] text-gray-600 leading-tight">
-                        Autorizo a <b>ASSEMBLÉIA DE DEUS DE DIADEMA</b> a utilizar meus dados para fins de cadastro e comunicação ministerial, conforme a <b>LGPD</b>.
-                    </label>
-                </div>
-            </div>
-            <button onclick="window.realizarCadastro()" class="w-full bg-[#8b3230] text-white p-5 rounded-2xl font-bold shadow-lg mt-8 active:scale-95 transition">FINALIZAR CADASTRO</button>
-            <button onclick="window.mudarView('login')" class="w-full text-gray-400 text-sm font-bold mt-4">Voltar ao Início</button>
+    <div class="h-screen w-screen p-6 bg-gray-50 flex flex-col items-center justify-center">
+        <div class="bg-white w-full max-w-sm p-8 rounded-[32px] shadow-xl">
+            <h2 class="text-[#8b3230] font-black mb-6 uppercase text-center">Ficha de Cadastro</h2>
+            <input id="regNome" type="text" placeholder="NOME COMPLETO" class="w-full p-4 mb-4 rounded-2xl bg-gray-50 border-none">
+            <input id="regPIN" type="password" maxlength="4" placeholder="CRIE UM PIN" class="w-full p-4 mb-8 rounded-2xl bg-gray-50 border-none text-center font-bold">
+            <button onclick="window.realizarCadastro()" class="w-full bg-[#8b3230] text-white p-4 rounded-2xl font-bold shadow-md">SALVAR</button>
+            <button onclick="state.view = 'login'; render();" class="w-full mt-4 text-gray-400 text-xs font-bold uppercase">Voltar</button>
         </div>
     </div>`;
 }
 
-window.mudarView = (v) => { state.view = v; render(); };
+function renderHome() {
+    return `
+    <div class="h-screen w-screen flex flex-col items-center justify-center bg-gray-50">
+        <span class="material-icons text-6xl text-green-500 mb-4">check_circle</span>
+        <h2 class="text-2xl font-black text-[#8b3230] uppercase">Acesso Liberado</h2>
+        <p class="text-gray-500 mt-2">Paz do Senhor, ${state.user?.nome || 'Membro'}!</p>
+        <button onclick="location.reload()" class="mt-8 text-gray-400 font-bold text-xs uppercase">Sair</button>
+    </div>`;
+}
 
-window.entrar = () => {
+window.autenticarDigital = () => {
+    alert("Iniciando leitura de biometria...");
+    setTimeout(() => {
+        state.user = { nome: "Usuário Bio" };
+        state.view = 'home';
+        render();
+    }, 1000);
+};
+
+window.tentarLogin = () => {
     const pin = document.getElementById('userPIN').value;
-    if(pin === "1234") { 
-        state.user = { nome: "Usuário Teste" }; 
-        state.view = 'dashboard';
-        render(); 
-    } else { alert("PIN Incorreto!"); }
+    if(pin.length === 4) {
+        state.user = { nome: "Usuário PIN" };
+        state.view = 'home';
+        render();
+    } else alert("Digite o PIN de 4 dígitos");
 };
 
 window.realizarCadastro = async () => {
     const nome = document.getElementById('regNome').value;
     const pin = document.getElementById('regPIN').value;
-    const lgpd = document.getElementById('regLGPD').checked;
-
-    if (!nome || !pin || !lgpd) return alert("Preencha o nome, PIN e aceite a LGPD!");
-
+    if(!nome || !pin) return alert("Preencha tudo!");
+    
     try {
-        await Database.salvar(`membros/${Date.now()}`, { nome, pin, status: 'Pendente' });
-        alert("Cadastro enviado com sucesso! Aguarde a aprovação.");
-        window.mudarView('login');
-    } catch (e) {
-        alert("Erro no banco de dados. Verifique a internet.");
+        await Database.salvar(`membros/${Date.now()}`, { nome, pin });
+        alert("Cadastro salvo com sucesso!");
+        state.view = 'login';
+        render();
+    } catch(e) {
+        alert("Erro ao conectar com o banco. Verifique a internet.");
     }
 };
 
-function renderMobile() { 
-    return `<div class="p-10 text-center"><img src="logo.jpeg" class="w-20 mx-auto mb-4"><h1 class="text-xl font-bold">ASSEMBLÉIA DE DEUS DE DIADEMA</h1><p class="mt-4 text-gray-500 italic">Bem-vindo ao painel mobile!</p><button onclick="location.reload()" class="mt-10 text-red-800 font-bold uppercase text-xs">Sair do App</button></div>`; 
-}
-
-function renderDesktop() { 
-    return `<div class="p-10 text-center"><h1 class="text-3xl font-bold uppercase">ASSEMBLÉIA DE DEUS DE DIADEMA</h1><p class="mt-4">Secretaria Virtual</p><button onclick="location.reload()" class="mt-10 text-red-800 font-bold uppercase text-xs">Sair</button></div>`; 
-}
-
-window.addEventListener('resize', render);
 render();
