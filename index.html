@@ -3,20 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AD Diadema - Cadastro</title>
+    <title>AD Diadema - Portal</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <style>
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        body { background-color: #f3f4f6; }
+        .card-membro { border-top: 5px solid #dc2626; }
     </style>
 </head>
-<body class="bg-gray-100 text-gray-900">
-    <div id="app" class="min-h-screen w-full flex flex-col">
+<body class="text-gray-900">
+    <div id="app" class="min-h-screen w-full">
         <div class="flex items-center justify-center h-screen">
             <div class="text-center">
-                <p class="text-gray-500 animate-pulse text-xl">Carregando sistema AD Diadema...</p>
-                <p class="text-sm text-gray-400">Verificando arquivos...</p>
+                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto"></div>
+                <p class="mt-4 text-gray-500 font-bold uppercase tracking-widest text-xs">Iniciando Sistema...</p>
             </div>
         </div>
     </div>
@@ -29,7 +29,6 @@
             }
         }
     </script>
-
     <script type="module" src="main.js"></script>
 </body>
 </html>
