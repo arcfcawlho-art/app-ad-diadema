@@ -6,7 +6,7 @@ function render() {
     const app = document.getElementById('app');
     if (!app) return;
     if (state.view === 'login') app.innerHTML = renderLogin();
-    else if (state.view === 'cadastro') app.innerHTML = renderCadastroCompleto();
+    else if (state.view === 'cadastro') app.innerHTML = renderCadastro();
     else app.innerHTML = renderHome();
 }
 
@@ -22,15 +22,15 @@ function renderLogin() {
             </button>
             <div class="pt-4">
                 <input id="userPIN" type="tel" maxlength="4" placeholder="PIN DE 4 DÍGITOS" class="w-full p-4 bg-gray-50 rounded-2xl text-center font-bold outline-none focus:ring-1 focus:ring-[#8b3230]">
-                <button onclick="window.tentarLogin()" class="w-full mt-3 bg-[#8b3230] text-white p-4 rounded-2xl font-bold shadow-lg">ACESSAR</button>
+                <button onclick="window.tentarLogin()" class="w-full mt-3 bg-[#8b3230] text-white p-4 rounded-2xl font-bold shadow-lg">ENTRAR NO APP</button>
             </div>
-            <button onclick="window.irParaCadastro()" class="text-[#8b3230] text-[11px] font-black uppercase hover:underline">Novo Cadastro</button>
+            <button onclick="window.irPara('cadastro')" class="text-[#8b3230] text-[11px] font-black uppercase hover:underline">Novo Cadastro</button>
         </div>
     </div>`;
 }
 
-// --- TELA DE CADASTRO COMPLETO ---
-function renderCadastroCompleto() {
+// --- TELA DE CADASTRO ---
+function renderCadastro() {
     return `
     <div class="min-h-screen w-screen p-4 bg-gray-100 flex flex-col items-center overflow-y-auto pb-10">
         <div class="bg-white w-full max-w-lg p-8 rounded-[32px] shadow-2xl border-t-8 border-[#8b3230] my-4">
@@ -40,117 +40,114 @@ function renderCadastroCompleto() {
                 <div id="photoPreview" class="w-32 h-32 bg-gray-200 rounded-2xl overflow-hidden border-4 border-white shadow-md flex items-center justify-center">
                     <span class="material-icons text-gray-400 text-4xl">person</span>
                 </div>
-                <button onclick="window.abrirCamera()" class="mt-3 bg-gray-800 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase flex items-center gap-2 shadow-lg">
-                    <span class="material-icons text-sm">photo_camera</span> Abrir Câmera
+                <button onclick="window.abrirCamera()" class="mt-3 bg-gray-800 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase flex items-center gap-2">
+                    <span class="material-icons text-sm">photo_camera</span> Tirar Foto
                 </button>
                 <video id="videoFeed" autoplay playsinline class="hidden w-32 h-32 rounded-2xl mt-2 object-cover border-2 border-[#8b3230]"></video>
-                <button id="btnCapture" onclick="window.capturarFoto()" class="hidden mt-2 bg-red-600 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase italic">Bater Foto Agora</button>
+                <button id="btnCapture" onclick="window.capturarFoto()" class="hidden mt-2 bg-red-600 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase">Capturar AGORA</button>
             </div>
 
             <div class="space-y-4">
                 <input id="regNome" type="text" placeholder="NOME COMPLETO" class="w-full p-4 rounded-xl bg-gray-50 border-none text-xs font-bold uppercase">
                 <div class="grid grid-cols-2 gap-3">
                     <input id="regNasc" type="date" class="p-4 rounded-xl bg-gray-50 border-none text-xs font-bold text-gray-500">
-                    <input id="regZap" type="tel" maxlength="15" oninput="window.mascaraFone(this)" placeholder="WHATSAPP (11 nrs)" class="p-4 rounded-xl bg-gray-50 border-none text-xs font-bold">
+                    <input id="regZap" type="tel" maxlength="15" oninput="window.validaZap(this)" placeholder="WHATSAPP (11 nrs)" class="p-4 rounded-xl bg-gray-50 border-none text-xs font-bold">
                 </div>
-                <input id="regCPF" type="tel" maxlength="14" oninput="window.mascaraCPF(this)" placeholder="CPF (11 números)" class="w-full p-4 rounded-xl bg-gray-50 border-none text-xs font-bold">
+                <input id="regCPF" type="tel" maxlength="14" oninput="window.validaCPF(this)" placeholder="CPF (11 números)" class="w-full p-4 rounded-xl bg-gray-50 border-none text-xs font-bold">
                 <input id="regCong" type="text" placeholder="CONGREGAÇÃO" class="w-full p-4 rounded-xl bg-gray-50 border-none text-xs font-bold uppercase">
-                <div class="p-4 bg-red-50 rounded-2xl border border-red-100 text-center">
-                    <p class="text-[9px] font-black text-red-800 mb-2 uppercase">Crie seu PIN de 4 dígitos</p>
-                    <input id="regPIN" type="tel" maxlength="4" placeholder="0 0 0 0" class="w-full p-3 rounded-xl border-none text-center text-2xl font-black">
-                </div>
-                <div class="flex items-start gap-2 text-[10px] text-gray-500 font-medium p-2">
-                    <input type="checkbox" id="regLGPD" class="w-4 h-4 accent-[#8b3230]"> Aceito os termos da LGPD (Lei Geral de Proteção de Dados)
+                <input id="regPIN" type="tel" maxlength="4" placeholder="CRIE SEU PIN (4 NÚMEROS)" class="w-full p-4 bg-red-50 rounded-xl border-none text-center font-black">
+                <div class="flex items-start gap-2 text-[10px] p-2">
+                    <input type="checkbox" id="regLGPD" checked class="w-4 h-4 accent-[#8b3230]"> Aceito a LGPD
                 </div>
             </div>
-            <button onclick="window.realizarCadastro()" class="w-full bg-[#8b3230] text-white p-5 rounded-2xl font-bold shadow-xl mt-8 italic uppercase text-sm">ENVIAR FICHA OFICIAL</button>
-            <button onclick="window.voltarLogin()" class="w-full mt-4 text-gray-400 text-[10px] font-black uppercase text-center tracking-widest">Cancelar</button>
+            <button onclick="window.finalizarCadastro()" class="w-full bg-[#8b3230] text-white p-5 rounded-2xl font-bold shadow-xl mt-8">FINALIZAR E ENTRAR</button>
+            <button onclick="window.irPara('login')" class="w-full mt-4 text-gray-400 text-[10px] font-black uppercase text-center">Voltar</button>
         </div>
         <canvas id="canvas" class="hidden"></canvas>
     </div>`;
 }
 
-// --- MÁSCARAS RÍGIDAS (BLOQUEIA EXCESSO) ---
-window.mascaraFone = (i) => {
-    let v = i.value.replace(/\D/g, ""); // Remove tudo que não é número
-    if (v.length > 11) v = v.substring(0, 11); // Trava em 11 números
+// --- TELA HOME (DENTRO DO APP) ---
+function renderHome() {
+    return `
+    <div class="h-screen w-screen flex flex-col items-center justify-center bg-gray-50 p-6 text-center">
+        <span class="material-icons text-6xl text-green-500 mb-4">check_circle</span>
+        <h2 class="text-2xl font-black text-[#8b3230] uppercase italic">Acesso Liberado</h2>
+        <p class="text-gray-500 mt-2 font-bold uppercase">Seja Bem-vindo ao App</p>
+        <div class="mt-8 grid grid-cols-2 gap-4 w-full max-w-xs text-[10px] font-black">
+            <div class="p-6 bg-white rounded-3xl shadow-sm border border-gray-100">MINHA FICHA</div>
+            <div class="p-6 bg-white rounded-3xl shadow-sm border border-gray-100">CULTOS</div>
+        </div>
+        <button onclick="location.reload()" class="mt-12 text-gray-300 font-bold text-[10px] uppercase underline">Sair e fechar</button>
+    </div>`;
+}
+
+// --- FUNÇÕES DE VALIDAÇÃO RÍGIDA ---
+window.validaZap = (i) => {
+    let v = i.value.replace(/\D/g, "");
+    if (v.length > 11) v = v.substring(0, 11);
     v = v.replace(/^(\d{2})(\d)/g, "($1) $2");
     v = v.replace(/(\d{5})(\d)/, "$1-$2");
     i.value = v;
 };
 
-window.mascaraCPF = (i) => {
-    let v = i.value.replace(/\D/g, ""); // Remove tudo que não é número
-    if (v.length > 11) v = v.substring(0, 11); // Trava em 11 números
+window.validaCPF = (i) => {
+    let v = i.value.replace(/\D/g, "");
+    if (v.length > 11) v = v.substring(0, 11);
     v = v.replace(/(\d{3})(\d)/, "$1.$2");
     v = v.replace(/(\d{3})(\d)/, "$1.$2");
     v = v.replace(/(\d{3})(\d{1,2})$/, "$1-$2");
     i.value = v;
 };
 
-// --- LOGICA DA CÂMERA ---
+// --- LOGICA DE CÂMERA ---
 window.abrirCamera = async () => {
     const video = document.getElementById('videoFeed');
     const preview = document.getElementById('photoPreview');
     const btnCap = document.getElementById('btnCapture');
     try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false });
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
         video.srcObject = stream;
-        video.classList.remove('hidden');
-        preview.classList.add('hidden');
-        btnCap.classList.remove('hidden');
-    } catch (err) { alert("Permita o acesso à câmera nas configurações."); }
+        video.classList.remove('hidden'); preview.classList.add('hidden'); btnCap.classList.remove('hidden');
+    } catch (e) { alert("Câmera bloqueada ou indisponível."); }
 };
 
 window.capturarFoto = () => {
     const video = document.getElementById('videoFeed');
     const canvas = document.getElementById('canvas');
-    const preview = document.getElementById('photoPreview');
-    const btnCap = document.getElementById('btnCapture');
     canvas.width = video.videoWidth; canvas.height = video.videoHeight;
     canvas.getContext('2d').drawImage(video, 0, 0);
-    state.fotoBase64 = canvas.toDataURL('image/jpeg', 0.6);
-    preview.innerHTML = `<img src="${state.fotoBase64}" class="w-full h-full object-cover">`;
-    preview.classList.remove('hidden'); video.classList.add('hidden'); btnCap.classList.add('hidden');
-    video.srcObject.getTracks().forEach(track => track.stop());
+    state.fotoBase64 = canvas.toDataURL('image/jpeg', 0.5);
+    document.getElementById('photoPreview').innerHTML = `<img src="${state.fotoBase64}" class="w-full h-full object-cover">`;
+    document.getElementById('photoPreview').classList.remove('hidden');
+    video.classList.add('hidden'); document.getElementById('btnCapture').classList.add('hidden');
+    video.srcObject.getTracks().forEach(t => t.stop());
 };
 
-// --- NAVEGAÇÃO E SALVAMENTO ---
-window.irParaCadastro = () => { state.view = 'cadastro'; render(); };
-window.voltarLogin = () => { state.view = 'login'; render(); };
+// --- NAVEGAÇÃO ---
+window.irPara = (v) => { state.view = v; render(); };
 
 window.tentarLogin = () => {
     const pin = document.getElementById('userPIN').value;
-    if(pin.length === 4) {
-        state.user = { nome: "Membro AD Diadema" };
+    if (pin.length === 4) {
         state.view = 'home';
         render();
-    } else { alert("Digite o PIN de 4 números."); }
+    } else { alert("O PIN deve ter 4 números."); }
 };
 
-window.realizarCadastro = async () => {
+window.finalizarCadastro = async () => {
     const nome = document.getElementById('regNome').value;
-    const cpf = document.getElementById('regCPF').value;
-    const zap = document.getElementById('regZap').value;
     const pin = document.getElementById('regPIN').value;
-    const lgpd = document.getElementById('regLGPD').checked;
-
-    if(!nome || pin.length < 4 || !lgpd) return alert("Preencha Nome, PIN de 4 dígitos e aceite a LGPD.");
-    if(cpf.length < 14) return alert("CPF incompleto! Digite os 11 números.");
-    if(zap.length < 14) return alert("WhatsApp incompleto! Digite o DDD + número.");
-
+    if (!nome || pin.length < 4) return alert("Preencha Nome e o PIN de 4 dígitos.");
+    
     try {
-        await Database.salvar(`membros/${Date.now()}`, { nome, cpf, zap, pin, foto: state.fotoBase64 });
-        alert("Ficha enviada com sucesso!");
-        state.view = 'login'; render();
-    } catch(e) { alert("Cadastro simulado (Modo Desenvolvedor)."); state.view = 'login'; render(); }
+        await Database.salvar(`membros/${Date.now()}`, { nome, pin, foto: state.fotoBase64 });
+        alert("Enviado com sucesso!");
+    } catch (e) {
+        alert("MODO TESTE: Indo para o app mesmo sem banco.");
+    }
+    state.view = 'home';
+    render();
 };
-
-function renderHome() {
-    return `<div class="h-screen w-screen flex flex-col items-center justify-center p-10 bg-gray-50">
-        <h2 class="text-xl font-black text-[#8b3230] uppercase italic">Paz do Senhor, ${state.user.nome}</h2>
-        <button onclick="location.reload()" class="mt-10 bg-gray-200 px-6 py-2 rounded-xl font-bold text-[10px]">SAIR</button>
-    </div>`;
-}
 
 render();
