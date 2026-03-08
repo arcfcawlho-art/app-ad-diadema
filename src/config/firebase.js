@@ -1,8 +1,9 @@
 import { initializeApp } from "firebase/app";
 import { getDatabase } from "firebase/database";
 
+// Cole aqui os dados que você pegou no Console do Firebase
 const firebaseConfig = {
-    apiKey: "SUA_API_KEY",
+    apiKey: "SUA_API_KEY_AQUI",
     authDomain: "SEU_PROJETO.firebaseapp.com",
     databaseURL: "https://SEU_PROJETO.firebaseio.com",
     projectId: "SEU_PROJETO",
