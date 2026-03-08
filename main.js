@@ -17,33 +17,34 @@ function renderizar() {
     const appDiv = document.getElementById('app');
     appDiv.innerHTML = `
         <div class="flex flex-col items-center p-4 bg-gray-100 min-h-screen">
-            <img src="logo.png" alt="AD Diadema" class="w-32 h-32 mb-4 object-contain">
+            <img src="logo.jpeg" alt="AD Diadema" class="w-32 h-32 mb-4 object-contain">
             
-            <div class="w-full max-w-md bg-white p-6 rounded-3xl shadow-xl">
+            <div class="w-full max-w-md bg-white p-6 rounded-3xl shadow-xl border border-gray-100">
                 <h2 class="text-2xl font-bold text-center text-blue-900 mb-6">Ficha de Membro</h2>
                 
-                <div class="relative w-full aspect-video bg-black rounded-2xl overflow-hidden mb-4 shadow-inner">
+                <div class="relative w-full aspect-square bg-black rounded-2xl overflow-hidden mb-4 shadow-inner">
                     <video id="video" autoplay playsinline class="w-full h-full object-cover"></video>
                     <canvas id="canvas" class="hidden"></canvas>
                     <img id="fotoPreview" class="hidden w-full h-full object-cover">
                 </div>
 
-                <button id="btnFoto" class="w-full mb-6 flex items-center justify-center gap-2 bg-gray-800 text-white py-3 rounded-xl font-bold">
+                <button id="btnFoto" class="w-full mb-6 flex items-center justify-center gap-2 bg-gray-800 text-white py-4 rounded-2xl font-bold shadow-lg active:scale-95 transition-transform">
                     <span class="material-icons">photo_camera</span> TIRAR FOTO
                 </button>
 
                 <div class="space-y-4">
                     <div>
-                        <label class="text-sm font-bold text-gray-600 ml-1">NOME COMPLETO</label>
-                        <input type="text" id="nome" class="w-full p-4 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-blue-500 shadow-sm" placeholder="Nome do membro">
+                        <label class="text-xs font-black text-gray-400 ml-1 uppercase">Nome Completo</label>
+                        <input type="text" id="nome" class="w-full p-4 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-blue-500 shadow-sm text-lg" placeholder="Nome do membro">
                     </div>
 
-                    <button id="btnSalvar" class="w-full bg-blue-700 hover:bg-blue-800 text-white font-extrabold py-4 rounded-2xl shadow-lg transition-all transform active:scale-95">
-                        FINALIZAR CADASTRO
+                    <button id="btnSalvar" class="w-full bg-blue-700 hover:bg-blue-800 text-white font-extrabold py-5 rounded-2xl shadow-lg transition-all transform active:scale-95 flex items-center justify-center gap-2">
+                        <span class="material-icons">check_circle</span> FINALIZAR CADASTRO
                     </button>
-                    <p id="status" class="text-center font-medium"></p>
+                    <p id="status" class="text-center font-bold mt-4"></p>
                 </div>
             </div>
+            <p class="text-gray-400 text-xs mt-8">AD Diadema © 2026</p>
         </div>
     `;
 
@@ -54,49 +55,59 @@ function renderizar() {
     let fotoBase64 = null;
 
     // Ligar Câmera
-    navigator.mediaDevices.getUserMedia({ video: { facingMode: "portrait" } })
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
         .then(stream => { video.srcObject = stream; })
-        .catch(err => { console.error("Erro câmera:", err); });
+        .catch(err => { 
+            console.error("Erro câmera:", err); 
+            alert("Por favor, ative a câmera para tirar a foto.");
+        });
 
     // Tirar Foto
     btnFoto.onclick = () => {
         const context = canvas.getContext('2d');
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        // Ajustar proporção para ficar quadrado e bonito
+        canvas.width = 600;
+        canvas.height = 600;
         
-        fotoBase64 = canvas.toDataURL('image/jpeg');
+        // Desenha a imagem centralizada
+        context.drawImage(video, 0, 0, 600, 600);
+        
+        fotoBase64 = canvas.toDataURL('image/jpeg', 0.8);
         fotoPreview.src = fotoBase64;
         
         video.classList.add('hidden');
         fotoPreview.classList.remove('hidden');
         btnFoto.innerHTML = '<span class="material-icons">refresh</span> TIRAR OUTRA FOTO';
+        btnFoto.classList.replace('bg-gray-800', 'bg-orange-500');
     };
 
-    // Salvar
+    // Salvar no Firebase
     document.getElementById('btnSalvar').onclick = async () => {
         const nome = document.getElementById('nome').value;
         const status = document.getElementById('status');
 
         if (!nome || !fotoBase64) {
-            alert("Por favor, preencha o nome e tire uma foto!");
+            alert("Atenção: Digite o nome e tire a foto antes de salvar!");
             return;
         }
 
-        status.innerText = "Enviando para a secretaria...";
+        status.innerText = "Enviando dados...";
         status.className = "text-blue-600 animate-pulse mt-4";
 
         try {
             await addDoc(collection(db, "membros"), {
-                nome: nome,
+                nome: nome.toUpperCase(),
                 foto: fotoBase64,
-                data: new Date().toLocaleString("pt-BR")
+                dataCadastro: new Date().toLocaleString("pt-BR")
             });
-            status.innerText = "✅ Cadastro realizado com sucesso!";
-            status.className = "text-green-600 font-bold mt-4";
+            status.innerText = "✅ CADASTRADO COM SUCESSO!";
+            status.className = "text-green-600 font-black mt-4";
+            
+            // Recarrega a página após 3 segundos para o próximo cadastro
             setTimeout(() => location.reload(), 3000);
         } catch (e) {
-            status.innerText = "❌ Erro ao salvar.";
+            console.error(e);
+            status.innerText = "❌ ERRO AO SALVAR";
             status.className = "text-red-600 mt-4";
         }
     };
