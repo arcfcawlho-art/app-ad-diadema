@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AD Diadema - App</title>
+    <title>AD Diadema - Cadastro</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <style>
@@ -11,12 +11,12 @@
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
-<body class="bg-gray-100 text-gray-900 overflow-hidden">
-    <div id="app" class="h-screen w-screen flex flex-col md:flex-row">
-        <div class="flex items-center justify-center w-full h-full">
+<body class="bg-gray-100 text-gray-900">
+    <div id="app" class="min-h-screen w-full flex flex-col">
+        <div class="flex items-center justify-center h-screen">
             <div class="text-center">
-                <div class="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-600 mb-2"></div>
-                <p class="text-gray-600 font-medium">Conectando à AD Diadema...</p>
+                <p class="text-gray-500 animate-pulse text-xl">Carregando sistema AD Diadema...</p>
+                <p class="text-sm text-gray-400">Verificando arquivos...</p>
             </div>
         </div>
     </div>
@@ -25,12 +25,11 @@
         {
             "imports": {
                 "firebase/app": "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js",
-                "firebase/firestore": "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js",
-                "firebase/auth": "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js"
+                "firebase/firestore": "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"
             }
         }
     </script>
 
-    <script type="module" src="./src/main.js"></script>
+    <script type="module" src="main.js"></script>
 </body>
 </html>
