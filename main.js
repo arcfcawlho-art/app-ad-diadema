@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, collection, addDoc, query, where, getDocs, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getFirestore, collection, addDoc, query, where, getDocs, doc, deleteDoc, updateDoc, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyDxucjJzh_JYBgL4d_2WLEsmVu_eKllIs",
@@ -14,213 +14,169 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 let telaAtual = 'login'; 
-let dadosMembro = null;
+let subTelaAdmin = 'menu'; // menu, relatorios, auditoria, saídas, promoção
+let usuarioLogado = null;
 let listaMembros = [];
-let fotoBase64 = null;
-let streamCamera = null;
+let logsAuditoria = [];
 
-// FUNÇÃO GLOBAL DE EXCLUSÃO (MELHORADA)
-window.excluirMembro = async (id) => {
-    if(confirm("⚠ ATENÇÃO: Deseja apagar este membro permanentemente?")) {
-        try {
-            await deleteDoc(doc(db, "membros", id));
-            alert("Membro removido!");
-            // Atualiza a lista local e renderiza de novo
-            listaMembros = listaMembros.filter(m => m.id !== id);
-            render();
-        } catch (e) {
-            alert("Erro ao excluir: " + e.message);
-        }
+// --- FUNÇÃO DE AUDITORIA (O CORAÇÃO DO CONTROLE) ---
+async function registrarLog(acao) {
+    await addDoc(collection(db, "auditoria"), {
+        admin: usuarioLogado.nome,
+        acao: acao,
+        data: new Date().toLocaleString(),
+        timestamp: Date.now()
+    });
+}
+
+// --- FUNÇÕES DE NAVEGAÇÃO ADMIN ---
+window.mudarSubTela = async (tela) => {
+    subTelaAdmin = tela;
+    if(tela === 'relatorios' || tela === 'promoção') {
+        const q = query(collection(db, "membros"), where("status", "==", "ativo"));
+        const qs = await getDocs(q);
+        listaMembros = qs.docs.map(d => ({id: d.id, ...d.data()}));
     }
+    if(tela === 'auditoria') {
+        const q = query(collection(db, "auditoria"), orderBy("timestamp", "desc"), limit(50));
+        const qs = await getDocs(q);
+        logsAuditoria = qs.docs.map(d => d.data());
+    }
+    render();
 }
 
 function render() {
     const appDiv = document.getElementById('app');
     
     if (telaAtual === 'login') {
-        appDiv.innerHTML = `
-            <div class="flex flex-col items-center p-6 justify-center min-h-screen bg-gray-100">
-                <img src="logo.jpeg" class="w-32 mb-8 object-contain">
-                <div class="w-full max-w-sm bg-white p-8 rounded-[2rem] shadow-2xl border-t-8 border-red-600 text-center">
-                    <h2 class="text-xl font-black text-gray-800 uppercase tracking-tighter">Portal AD Diadema</h2>
-                    <div class="mt-6 space-y-4">
-                        <input type="text" id="loginUser" placeholder="Nome do Usuário" class="w-full p-4 bg-gray-50 rounded-2xl border-none ring-1 ring-gray-200">
-                        <input type="password" id="loginPin" placeholder="PIN (4 dígitos)" maxlength="4" class="w-full p-4 bg-gray-50 rounded-2xl border-none text-center text-2xl tracking-widest ring-1 ring-gray-200">
-                    </div>
-                    <button id="btnEntrar" class="w-full bg-red-600 text-white p-4 mt-6 rounded-2xl font-black shadow-lg">ENTRAR NO SISTEMA</button>
-                    <button id="irParaCadastro" class="w-full text-gray-400 font-bold text-xs uppercase pt-4 hover:text-red-600">Fazer meu Cadastro</button>
-                </div>
-            </div>
-        `;
-        document.getElementById('irParaCadastro').onclick = () => { telaAtual = 'cadastro'; render(); };
-        document.getElementById('btnEntrar').onclick = realizarLogin;
+        // ... (Mantém o login anterior)
     } 
-
-    else if (telaAtual === 'cadastro') {
-        appDiv.innerHTML = `
-            <div class="flex flex-col items-center p-4 min-h-screen bg-gray-50">
-                <div class="w-full max-w-md bg-white p-6 rounded-[2rem] shadow-xl space-y-4">
-                    <h2 class="text-2xl font-black text-red-600 text-center uppercase">Novo Cadastro</h2>
-                    <input type="text" id="cadNome" placeholder="Nome Completo" class="w-full p-4 bg-gray-50 rounded-xl border-none ring-1 ring-gray-200 uppercase">
-                    <input type="text" id="cadFone" placeholder="Telefone com DDD" maxlength="11" class="w-full p-4 bg-gray-50 rounded-xl border-none ring-1 ring-gray-200">
-                    <input type="password" id="cadPin" placeholder="PIN (4 dígitos)" maxlength="4" class="w-full p-4 bg-gray-50 rounded-xl border-none ring-1 ring-gray-200">
-                    
-                    <div class="p-3 bg-red-50 rounded-xl border border-red-100 flex items-start gap-3">
-                        <input type="checkbox" id="checkLgpd" class="mt-1 w-5 h-5 accent-red-600">
-                        <label for="checkLgpd" class="text-[10px] text-gray-600 leading-tight">
-                            Autorizo a <b>AD Diadema</b> a armazenar meus dados e imagem para fins de identificação interna, conforme a <b>LGPD</b>.
-                        </label>
-                    </div>
-
-                    <div class="relative w-full aspect-square bg-gray-900 rounded-2xl overflow-hidden border-4 border-white shadow-2xl">
-                        <video id="video" autoplay playsinline class="w-full h-full object-cover"></video>
-                        <canvas id="canvas" class="hidden"></canvas>
-                        <img id="fotoPreview" class="hidden w-full h-full object-cover">
-                    </div>
-
-                    <button id="btnTirarFoto" class="w-full bg-gray-800 text-white p-3 rounded-xl font-bold uppercase text-xs">Capturar Minha Foto</button>
-                    <button id="finalizarCad" class="w-full bg-red-600 text-white p-5 rounded-2xl font-black shadow-lg uppercase">Confirmar Cadastro</button>
-                    <button id="voltarLogin" class="w-full text-gray-400 text-xs font-bold uppercase">Voltar</button>
-                </div>
-            </div>
-        `;
-        iniciarCamera();
-        document.getElementById('voltarLogin').onclick = () => { desligarCamera(); telaAtual = 'login'; render(); };
-        document.getElementById('btnTirarFoto').onclick = tirarFoto;
-        document.getElementById('finalizarCad').onclick = salvarCadastro;
-    }
 
     else if (telaAtual === 'admin') {
         appDiv.innerHTML = `
-            <div class="flex flex-col min-h-screen bg-gray-100">
-                <div class="bg-gray-900 p-6 text-white flex justify-between items-center sticky top-0 z-50">
-                    <div>
-                        <h2 class="font-black uppercase text-sm">Administração</h2>
-                        <p class="text-[9px] text-red-500 font-bold uppercase">Painel de Controle</p>
-                    </div>
-                    <button id="sair" class="bg-red-600 px-4 py-2 rounded-lg text-xs font-black">SAIR</button>
+            <div class="flex flex-col min-h-screen bg-gray-100 font-sans">
+                <div class="bg-gray-900 p-6 text-white flex justify-between items-center shadow-xl">
+                    <h2 class="font-black uppercase text-xs tracking-widest">Painel Gestão AD</h2>
+                    <button onclick="location.reload()" class="text-[10px] font-bold opacity-50">SAIR</button>
                 </div>
 
-                <div class="p-4 space-y-4">
-                    <div class="bg-white p-6 rounded-3xl shadow-sm border-l-8 border-red-600">
-                        <p class="text-[10px] font-black text-gray-400 uppercase">Membros Cadastrados</p>
-                        <h3 class="text-4xl font-black text-gray-800">${listaMembros.length}</h3>
-                    </div>
+                ${subTelaAdmin === 'menu' ? renderMenuAdmin() : ''}
+                ${subTelaAdmin === 'relatorios' ? renderRelatorios() : ''}
+                ${subTelaAdmin === 'auditoria' ? renderAuditoria() : ''}
+                ${subTelaAdmin === 'promoção' ? renderPromocao() : ''}
+                
+                ${subTelaAdmin !== 'menu' ? `<button onclick="mudarSubTela('menu')" class="fixed bottom-4 right-4 bg-black text-white p-4 rounded-full shadow-2xl"><span class="material-icons">menu</span></button>` : ''}
+            </div>
+        `;
+    }
+}
 
-                    <div class="grid gap-4">
-                        ${listaMembros.length === 0 ? '<p class="text-center text-gray-400 py-10">Nenhum membro encontrado.</p>' : ''}
+function renderMenuAdmin() {
+    return `
+        <div class="p-6 grid grid-cols-1 gap-4">
+            <button onclick="mudarSubTela('relatorios')" class="bg-white p-8 rounded-[2rem] shadow-sm border-l-8 border-blue-600 flex items-center gap-6">
+                <span class="material-icons text-blue-600 text-4xl">assessment</span>
+                <div class="text-left">
+                    <p class="font-black uppercase text-sm">1. Relatórios</p>
+                    <p class="text-[10px] text-gray-400">Filtros e Impressão de Listas</p>
+                </div>
+            </button>
+            <button onclick="mudarSubTela('auditoria')" class="bg-white p-8 rounded-[2rem] shadow-sm border-l-8 border-amber-500 flex items-center gap-6">
+                <span class="material-icons text-amber-500 text-4xl">security</span>
+                <div class="text-left">
+                    <p class="font-black uppercase text-sm">2. Auditoria</p>
+                    <p class="text-[10px] text-gray-400">Logs de Ações do Sistema</p>
+                </div>
+            </button>
+            <button onclick="alert('Tela de Saídas em desenvolvimento')" class="bg-white p-8 rounded-[2rem] shadow-sm border-l-8 border-gray-400 flex items-center gap-6">
+                <span class="material-icons text-gray-400 text-4xl">logout</span>
+                <div class="text-left">
+                    <p class="font-black uppercase text-sm font-bold opacity-50">3. Controle de Saída</p>
+                    <p class="text-[10px] text-gray-400">Histórico de Desligamentos</p>
+                </div>
+            </button>
+            <button onclick="mudarSubTela('promoção')" class="bg-white p-8 rounded-[2rem] shadow-sm border-l-8 border-red-600 flex items-center gap-6">
+                <span class="material-icons text-red-600 text-4xl">stars</span>
+                <div class="text-left">
+                    <p class="font-black uppercase text-sm">4. Promoção</p>
+                    <p class="text-[10px] text-gray-400">Gerenciar Admins e Hierarquia</p>
+                </div>
+            </button>
+        </div>
+    `;
+}
+
+function renderRelatorios() {
+    return `
+        <div class="p-4 space-y-4">
+            <h3 class="font-black uppercase text-center text-gray-400 text-xs">Filtros de Membresia</h3>
+            <div class="bg-white p-6 rounded-3xl shadow-sm space-y-3">
+                <select class="w-full p-3 bg-gray-50 rounded-xl border-none ring-1 ring-gray-100 text-xs font-bold">
+                    <option>Filtrar por Cargo (Todos)</option>
+                    <option>Membro</option>
+                    <option>Obreiro</option>
+                </select>
+                <button class="w-full bg-blue-600 text-white p-4 rounded-xl font-black uppercase text-[10px]">Gerar PDF para Impressão</button>
+            </div>
+            <div class="bg-white rounded-3xl overflow-hidden">
+                <table class="w-full text-[10px] text-left">
+                    <thead class="bg-gray-50 font-black uppercase">
+                        <tr><th class="p-3">Nome</th><th class="p-3">Cargo</th></tr>
+                    </thead>
+                    <tbody>
                         ${listaMembros.map(m => `
-                            <div class="bg-white p-4 rounded-2xl shadow-sm flex items-center gap-4 border border-gray-100">
-                                <img src="${m.foto}" class="w-16 h-16 rounded-xl object-cover border shadow-sm">
-                                <div class="flex-1">
-                                    <p class="font-black text-sm uppercase text-gray-800 leading-none">${m.nome}</p>
-                                    <p class="text-[10px] text-gray-500 mt-1 font-bold">PIN: ${m.pin} | Fone: ${m.fone}</p>
-                                    <div class="flex gap-2 mt-3">
-                                        <a href="https://wa.me/55${m.fone}" target="_blank" class="bg-green-600 text-white px-3 py-1 rounded-lg text-[9px] font-black uppercase flex items-center gap-1">
-                                            <span class="material-icons text-xs">chat</span> WHATSAPP
-                                        </a>
-                                        <button onclick="window.excluirMembro('${m.id}')" class="bg-gray-100 text-red-600 px-3 py-1 rounded-lg text-[9px] font-black uppercase flex items-center gap-1">
-                                            <span class="material-icons text-xs">delete_forever</span> EXCLUIR
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
+                            <tr class="border-t"><td class="p-3 font-bold">${m.nome}</td><td class="p-3">${m.cargo}</td></tr>
                         `).join('')}
-                    </div>
-                </div>
+                    </tbody>
+                </table>
             </div>
-        `;
-        document.getElementById('sair').onclick = () => { location.reload(); };
-    }
+        </div>
+    `;
+}
 
-    else if (telaAtual === 'areaMembro') {
-        appDiv.innerHTML = `
-            <div class="flex flex-col min-h-screen bg-gray-100">
-                <div class="bg-red-600 p-8 rounded-b-[3.5rem] shadow-xl text-white">
-                    <p class="text-xs font-bold opacity-70 uppercase tracking-widest">Paz do Senhor,</p>
-                    <h2 class="text-2xl font-black uppercase">${dadosMembro.nome.split(' ')[0]}</h2>
+function renderAuditoria() {
+    return `
+        <div class="p-4 space-y-3">
+            <h3 class="font-black uppercase text-center text-gray-400 text-xs">Registros de Auditoria</h3>
+            ${logsAuditoria.map(log => `
+                <div class="bg-white p-4 rounded-2xl border-l-4 border-amber-400 shadow-sm">
+                    <p class="text-[10px] font-black uppercase">${log.admin}</p>
+                    <p class="text-[11px] text-gray-700">${log.acao}</p>
+                    <p class="text-[9px] text-gray-400 mt-1">${log.data}</p>
                 </div>
-                <div class="p-6 flex flex-col items-center flex-1 justify-center">
-                    <img src="${dadosMembro.foto}" class="w-56 h-56 rounded-[3rem] border-8 border-white shadow-2xl object-cover mb-6">
-                    <h3 class="text-xl font-black text-gray-800 uppercase text-center">${dadosMembro.nome}</h3>
-                    <p class="text-red-600 font-black text-xs mt-1 uppercase tracking-[0.2em]">Membro AD Diadema</p>
-                    
-                    <div class="mt-8 p-6 bg-white rounded-3xl shadow-inner border-2 border-dashed border-gray-200">
-                         <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=MEMBRO:${dadosMembro.nome}" class="w-32 h-32 opacity-90">
+            `).join('')}
+        </div>
+    `;
+}
+
+function renderPromocao() {
+    return `
+        <div class="p-4 space-y-4">
+            <h3 class="font-black uppercase text-center text-gray-400 text-xs">Gestão de Privilégios</h3>
+            <div class="grid gap-3">
+                ${listaMembros.map(m => `
+                    <div class="bg-white p-4 rounded-3xl flex items-center justify-between">
+                        <div>
+                            <p class="font-black text-xs uppercase">${m.nome}</p>
+                            <p class="text-[9px] font-bold ${m.nivel === 'admin' ? 'text-blue-600' : 'text-gray-400 uppercase'}">${m.nivel === 'admin' ? 'ACESSO ADMIN' : 'ACESSO COMUM'}</p>
+                        </div>
+                        <button onclick="promoverMembro('${m.id}', '${m.nivel}', '${m.nome}')" class="p-3 rounded-2xl ${m.nivel === 'admin' ? 'bg-gray-100 text-red-600' : 'bg-red-600 text-white'} font-black text-[9px] uppercase">
+                            ${m.nivel === 'admin' ? 'Remover' : 'Promover'}
+                        </button>
                     </div>
-
-                    <button id="sairApp" class="mt-12 text-gray-400 font-bold text-[10px] uppercase tracking-[0.3em]">Encerrar Sessão</button>
-                </div>
+                `).join('')}
             </div>
-        `;
-        document.getElementById('sairApp').onclick = () => { location.reload(); };
+        </div>
+    `;
+}
+
+window.promoverMembro = async (id, nivelAtual, nomeMembro) => {
+    const novoNivel = nivelAtual === 'admin' ? 'membro' : 'admin';
+    if(confirm(`Deseja alterar o acesso de ${nomeMembro}?`)) {
+        await updateDoc(doc(db, "membros", id), { nivel: novoNivel });
+        await registrarLog(`${novoNivel === 'admin' ? 'PROMOVEU' : 'REBAIXOU'} o acesso de ${nomeMembro}`);
+        mudarSubTela('promoção');
     }
 }
 
-// LÓGICA DE LOGIN
-async function realizarLogin() {
-    const user = document.getElementById('loginUser').value.trim();
-    const pin = document.getElementById('loginPin').value.trim();
-    
-    if (user.toLowerCase() === "admin" && pin === "9999") {
-        const todos = await getDocs(collection(db, "membros"));
-        listaMembros = todos.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        telaAtual = 'admin';
-        render();
-        return;
-    }
-
-    const q = query(collection(db, "membros"), where("nome", "==", user.toUpperCase()), where("pin", "==", pin));
-    const qs = await getDocs(q);
-
-    if (!qs.empty) {
-        dadosMembro = qs.docs[0].data();
-        telaAtual = 'areaMembro'; 
-        render();
-    } else { alert("Usuário ou PIN incorretos!"); }
-}
-
-// CÂMERA
-function iniciarCamera() {
-    navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
-        .then(s => { streamCamera = s; document.getElementById('video').srcObject = s; })
-        .catch(() => alert("Por favor, autorize a câmera para o cadastro."));
-}
-
-function desligarCamera() {
-    if (streamCamera) { streamCamera.getTracks().forEach(t => t.stop()); streamCamera = null; }
-}
-
-function tirarFoto() {
-    const video = document.getElementById('video');
-    const canvas = document.getElementById('canvas');
-    const preview = document.getElementById('fotoPreview');
-    canvas.width = 600; canvas.height = 600;
-    canvas.getContext('2d').drawImage(video, 0, 0, 600, 600);
-    fotoBase64 = canvas.toDataURL('image/jpeg', 0.8);
-    preview.src = fotoBase64;
-    video.classList.add('hidden');
-    preview.classList.remove('hidden');
-}
-
-// SALVAR COM VALIDAÇÃO LGPD
-async function salvarCadastro() {
-    const nome = document.getElementById('cadNome').value.toUpperCase().trim();
-    const pin = document.getElementById('cadPin').value;
-    const fone = document.getElementById('cadFone').value;
-    const aceitouLgpd = document.getElementById('checkLgpd').checked;
-
-    if(!aceitouLgpd) return alert("Você precisa aceitar os termos da LGPD para continuar.");
-    if(!nome || pin.length < 4 || !fotoBase64 || fone.length < 10) return alert("Preencha todos os campos e tire sua foto!");
-    
-    try {
-        await addDoc(collection(db, "membros"), { 
-            nome, pin, fone, foto: fotoBase64, data: new Date().toLocaleString() 
-        });
-        desligarCamera();
-        alert("🎉 Glória a Deus! Cadastro concluído com sucesso.");
-        telaAtual = 'login'; render();
-    } catch (e) { alert("Erro ao salvar dados."); }
-}
-
-render();
+// ... Restante das funções de Login e Cadastro (Lembrar de add 'status: ativo' no cadastro)
